@@ -33,6 +33,9 @@
             📄 Voir le PDF de vulgarisation
         </a>
     </div>
+    <a href="{{ route('admin.vulgarisations.auto', $recherche) }}" class="btn btn-outline-success mb-4">
+        🤖 Générer une vulgarisation IA
+    </a>
 </div>
 
 {{-- Actions --}}
