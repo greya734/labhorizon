@@ -39,6 +39,7 @@ Route::prefix('moncompte')->name('admin.')->middleware('auth')->group(function (
         Route::get('create',              [VulgarisationController::class, 'create'])->name('create');
         Route::post('/',                  [VulgarisationController::class, 'store'])->name('store');
         Route::get('/{vulgarisation}',    [VulgarisationController::class, 'show'])->name('show');
+        Route::get('vulgariser/preview',  [VulgarisationAutoController::class, 'preview'])->name('preview');
         Route::get('vulgariser',          [VulgarisationAutoController::class, 'create'])->name('auto');
         Route::post('vulgariser',         [VulgarisationAutoController::class, 'generate'])->name('generate');
         Route::delete('/{vulgarisation}', [VulgarisationController::class, 'destroy'])->name('destroy');

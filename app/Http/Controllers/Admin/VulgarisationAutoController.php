@@ -58,4 +58,33 @@ class VulgarisationAutoController extends Controller
         return redirect()->route('admin.recherches.show', $recherche)
                          ->with('success', 'Vulgarisation générée avec succès.');
     }
+
+    public function preview(Request $request, Recherche $recherche)
+    {
+        abort_if($recherche->user_id !== auth()->id(), 403);
+
+        $request->validate([
+            'niveau_public' => 'required|in:grand_public,lyceen,collegien',
+            'langue'        => 'required|in:fr,en',
+        ]);
+
+        if ($recherche->pdf_path) {
+            $texte = $this->llm->extrairePdf($recherche->pdf_path);
+        } else {
+            $texte = $recherche->abstract;
+        }
+
+        if (empty($texte)) {
+            return back()->with('error', 'Impossible d\'extraire le contenu.');
+        }
+
+        $resume = $this->llm->vulgariser($texte, $request->niveau_public, $request->langue);
+
+        session([
+            'niveau_public' => $request->niveau_public,
+            'langue'        => $request->langue,
+        ]);
+
+        return view('admin.vulgarisations.auto', compact('recherche', 'resume'));
+    }
 }
