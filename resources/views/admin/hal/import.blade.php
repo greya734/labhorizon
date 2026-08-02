@@ -98,8 +98,16 @@
                         <td>
                             {{-- Formulaire d'import unitaire --}}
                             <form action="{{ route('admin.hal.import.one') }}" method="POST">
-                                @csrf
+
                                 {{-- On passe toutes les données du doc en champs cachés --}}
+                                @csrf
+                                <input type="hidden" name="doc[halId_s]"             value="{{ $doc['halId_s'] ?? '' }}">
+                                <input type="hidden" name="doc[title_s]"             value="{{ is_array($doc['title_s'] ?? null) ? $doc['title_s'][0] : ($doc['title_s'] ?? '') }}">
+                                <input type="hidden" name="doc[abstract_s]"          value="{{ is_array($doc['abstract_s'] ?? null) ? $doc['abstract_s'][0] : ($doc['abstract_s'] ?? '') }}">
+                                <input type="hidden" name="doc[submittedDate_tdate]" value="{{ $doc['submittedDate_tdate'] ?? '' }}">
+                                <input type="hidden" name="doc[fileMain_s]"          value="{{ $doc['fileMain_s'] ?? '' }}">
+                                <input type="hidden" name="doc[uri_s]"               value="{{ $doc['uri_s'] ?? '' }}">
+
                                 @foreach((array)($doc['domain_s'] ?? []) as $d)
                                     <input type="hidden" name="doc[domain_s][]" value="{{ $d }}">
                                 @endforeach
@@ -111,6 +119,11 @@
                                 @foreach((array)($doc['structName_s'] ?? []) as $s)
                                     <input type="hidden" name="doc[structName_s][]" value="{{ $s }}">
                                 @endforeach
+
+                                <button type="submit" class="btn btn-sm btn-outline-primary">
+                                    ⬇️ Importer
+                                </button>
+                            </form>
                                 <button type="submit" class="btn btn-sm btn-outline-primary">
                                     ⬇️ Importer
                                 </button>
