@@ -26,4 +26,19 @@ class Recherche extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function domaines()
+    {
+        return $this->belongsToMany(Domaine::class, 'recherche_domaine');
+    }
+
+    public function auteurs()
+    {
+        return $this->belongsToMany(Auteur::class, 'recherche_auteur');
+    }
+
+    public function structures()
+    {
+        return $this->belongsToMany(Structure::class, 'recherche_structure');
+    }
 }
