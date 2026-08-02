@@ -39,7 +39,7 @@ class HalImportService
 
         if ($domaine === null) {
             $params['fq']   = 'submittedDate_tdate:[NOW-1MONTH TO NOW]';
-            $params['rows'] = 1000;
+            $params['rows'] = min($rows, 500);
         } else {
             $params['fq'] = 'domain_s:"' . $domaine . '"';
         }
@@ -368,14 +368,14 @@ public function importDocs(array $docs, bool $downloadPdf = true, ?int $userId =
         ]);
 
         // Domaines
-        $domaineCodes = (array)($doc['domain_s'] ?? []);
+        $domaineCodes = collect((array)($doc['domain_s'] ?? []))->unique()->values();
         foreach ($domaineCodes as $code) {
             $label   = self::LABELS_DOMAINES[$code] ?? $code;
             $domaine = \App\Models\Domaine::firstOrCreate(
                 ['code'  => $code],
                 ['label' => $label]
             );
-            $recherche->domaines()->attach($domaine->id);
+            $recherche->domaines()->syncWithoutDetaching([$domaine->id]);
         }
 
         // Auteurs
@@ -386,7 +386,7 @@ public function importDocs(array $docs, bool $downloadPdf = true, ?int $userId =
         foreach ($auteurs as $nom) {
             if (empty(trim($nom))) continue;
             $auteur = \App\Models\Auteur::firstOrCreate(['nom' => trim($nom)]);
-            $recherche->auteurs()->attach($auteur->id);
+            $recherche->auteurs()->syncWithoutDetaching($auteur->id);
         }
 
         // Structures
@@ -397,7 +397,7 @@ public function importDocs(array $docs, bool $downloadPdf = true, ?int $userId =
         foreach ($structures as $nom) {
             if (empty(trim($nom))) continue;
             $structure = \App\Models\Structure::firstOrCreate(['nom' => trim($nom)]);
-            $recherche->structures()->attach($structure->id);
+            $recherche->structures()->syncWithoutDetaching($structure->id);
         }
 
         $imported++;
