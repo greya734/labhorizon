@@ -124,10 +124,6 @@
                                     ⬇️ Importer
                                 </button>
                             </form>
-                                <button type="submit" class="btn btn-sm btn-outline-primary">
-                                    ⬇️ Importer
-                                </button>
-                            </form>
                         </td>
                     </tr>
                     @endforeach
