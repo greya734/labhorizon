@@ -28,7 +28,7 @@ class VulgarisationAutoController extends Controller
         abort_if($recherche->user_id !== auth()->id(), 403);
 
         $request->validate([
-            'niveau_public' => 'required|in:grand_public,lyceen,collegien',
+            'niveau_public' => 'required|in:grand_public,chercheurs',
             'langue'        => 'required|in:fr,en',
             'resume'        => 'required|string',
         ]);
@@ -50,7 +50,7 @@ class VulgarisationAutoController extends Controller
         abort_if($recherche->user_id !== auth()->id(), 403);
 
         $request->validate([
-            'niveau_public' => 'required|in:grand_public,lyceen,collegien',
+            'niveau_public' => 'required|in:grand_public,chercheurs',
             'langue'        => 'required|in:fr,en',
         ]);
 

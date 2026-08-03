@@ -17,8 +17,7 @@
             <label class="form-label">Niveau du public cible *</label>
             <select name="niveau_public" class="form-select">
                 <option value="grand_public">Grand public</option>
-                <option value="lyceen">Lycéen</option>
-                <option value="collegien">Collégien</option>
+                <option value="chercheurs">Chercheurs</option>
             </select>
         </div>
 
