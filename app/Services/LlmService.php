@@ -12,7 +12,7 @@ class LlmService
     {
         $niveauLabel = match($niveau) {
             'grand_public' => 'grand public (pas de jargon scientifique)',
-            'chercheurs'       => 'lycéen (jargon scientifique, exemples concrets)',
+            'chercheurs'       => 'chercheurs (jargon scientifique, exemples concrets)',
 
             default        => 'grand public',
         };

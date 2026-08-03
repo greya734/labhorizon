@@ -14,6 +14,6 @@ class Vulgarisation extends Model
 
     public function getPdfUrlAttribute()
     {
-        return asset('storage/' . $this->pdf_path);
+        return asset('files/' . $this->pdf_path);
     }
 }

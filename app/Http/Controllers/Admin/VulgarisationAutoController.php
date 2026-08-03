@@ -28,35 +28,21 @@ class VulgarisationAutoController extends Controller
         abort_if($recherche->user_id !== auth()->id(), 403);
 
         $request->validate([
-            'niveau_public' => 'required|in:grand_public,lyceen,collegien',
+            'niveau_public' => 'required|in:grand_public,chercheurs',
             'langue'        => 'required|in:fr,en',
+            'resume'        => 'required|string',
         ]);
 
-        // Récupère le texte — PDF en priorité, sinon abstract
-        if ($recherche->pdf_path) {
-            $texte = $this->llm->extrairePdf($recherche->pdf_path);
-        } else {
-            $texte = $recherche->abstract;
-        }
-
-        if (empty($texte)) {
-            return back()->with('error', 'Impossible d\'extraire le contenu.');
-        }
-
-        // Génère la vulgarisation
-        $resume = $this->llm->vulgariser($texte, $request->niveau_public, $request->langue);
-
-        // Sauvegarde
-        $vulgarisation = $recherche->vulgarisations()->create([
+        $recherche->vulgarisations()->create([
             'titre'         => 'Vulgarisation — ' . $request->niveau_public . ' (' . strtoupper($request->langue) . ')',
-            'resume'        => $resume,
+            'resume'        => $request->resume,
             'niveau_public' => $request->niveau_public,
             'pdf_path'      => null,
             'langue'        => $request->langue,
         ]);
 
         return redirect()->route('admin.recherches.show', $recherche)
-                         ->with('success', 'Vulgarisation générée avec succès.');
+                         ->with('success', 'Vulgarisation sauvegardée.');
     }
 
     public function preview(Request $request, Recherche $recherche)
@@ -64,27 +50,17 @@ class VulgarisationAutoController extends Controller
         abort_if($recherche->user_id !== auth()->id(), 403);
 
         $request->validate([
-            'niveau_public' => 'required|in:grand_public,lyceen,collegien',
+            'niveau_public' => 'required|in:grand_public,chercheurs',
             'langue'        => 'required|in:fr,en',
         ]);
 
-        if ($recherche->pdf_path) {
-            $texte = $this->llm->extrairePdf($recherche->pdf_path);
-        } else {
-            $texte = $recherche->abstract;
-        }
+        \App\Jobs\GenerateVulgarisationJob::dispatch(
+            $recherche,
+            $request->niveau_public,
+            $request->langue
+        );
 
-        if (empty($texte)) {
-            return back()->with('error', 'Impossible d\'extraire le contenu.');
-        }
-
-        $resume = $this->llm->vulgariser($texte, $request->niveau_public, $request->langue);
-
-        session([
-            'niveau_public' => $request->niveau_public,
-            'langue'        => $request->langue,
-        ]);
-
-        return view('admin.vulgarisations.auto', compact('recherche', 'resume'));
+        return redirect()->route('admin.recherches.show', $recherche)
+                         ->with('success', 'Génération en cours — la vulgarisation apparaîtra dans quelques instants.');
     }
 }
