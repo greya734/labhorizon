@@ -47,7 +47,17 @@ Route::prefix('moncompte')->name('admin.')->middleware('auth')->group(function (
         Route::get('/{vulgarisation}',    [VulgarisationController::class, 'show'])->name('show');
         Route::delete('/{vulgarisation}', [VulgarisationController::class, 'destroy'])->name('destroy');
     });
+
 });
 
+Route::get('/files/{path}', function ($path) {
+        $fullPath = public_path('files/' . $path);
+
+        if (!file_exists($fullPath)) {
+            abort(404);
+        }
+
+        return response()->file($fullPath);
+    })->where('path', '.*');
 // Breeze auth routes (login, register, profile...)
 require __DIR__.'/auth.php';
