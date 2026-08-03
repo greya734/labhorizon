@@ -29,7 +29,7 @@ class RechercheController extends Controller
     {
         $request->validate([
             'titre' => 'required|string|max:255',
-            'pdf'   => 'nullable|mimes:pdf|max:20480',
+            'pdf' => 'nullable|mimetypes:application/pdf|max:20480',
         ]);
 
         $pdfPath = null;
@@ -86,7 +86,7 @@ class RechercheController extends Controller
 
         $request->validate([
             'titre' => 'required|string|max:255',
-            'pdf'   => 'nullable|mimes:pdf|max:20480',
+            'pdf' => 'nullable|mimetypes:application/pdf|max:20480',
         ]);
 
         if ($request->hasFile('pdf')) {

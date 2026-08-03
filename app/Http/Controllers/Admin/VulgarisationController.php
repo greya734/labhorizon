@@ -27,7 +27,7 @@ class VulgarisationController extends Controller
             'titre'         => 'required|string|max:255',
             'resume'        => 'nullable|string',
             'niveau_public' => 'required|in:grand_public,chercheurs',
-            'pdf'           => 'required|mimes:pdf|max:20480',
+            'pdf' => 'nullable|mimetypes:application/pdf|max:20480',
         ]);
 
         $path = $request->file('pdf')->store('vulgarisations', 'public');
