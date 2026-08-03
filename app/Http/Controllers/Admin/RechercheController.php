@@ -83,21 +83,25 @@ class RechercheController extends Controller
     public function update(Request $request, Recherche $recherche)
     {
         abort_if($recherche->user_id !== auth()->id(), 403);
+
         $request->validate([
-            'titre'  => 'required|string|max:255',
-            'pdf'    => 'nullable|mimes:pdf|max:20480',
+            'titre' => 'required|string|max:255',
+            'pdf'   => 'nullable|mimes:pdf|max:20480',
         ]);
 
         if ($request->hasFile('pdf')) {
-            // Supprimer l'ancien fichier
             if ($recherche->pdf_path) {
-                Storage::disk('public')->delete($recherche->pdf_path);
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($recherche->pdf_path);
             }
-            $recherche->pdf_path = $request->file('pdf')->store('recherches', 'public');
+            $recherche->pdf_path = $request->file('pdf')->store('recherches', 'files');
         }
 
-        $recherche->update($request->only(['titre', 'description', 'auteur', 'domaine'])
+        $recherche->update($request->only(['titre', 'description', 'date_production'])
                  + ['pdf_path' => $recherche->pdf_path]);
+
+        if (request()->expectsJson()) {
+            return response()->json($recherche);
+        }
 
         return redirect()->route('admin.recherches.show', $recherche)
                          ->with('success', 'Recherche mise à jour.');
