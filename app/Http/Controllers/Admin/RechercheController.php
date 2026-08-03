@@ -12,9 +12,10 @@ class RechercheController extends Controller
     public function index()
     {
         $recherches = Recherche::where('user_id', auth()->id())
-                               ->withCount('vulgarisations')
-                               ->latest()
-                               ->paginate(15);
+                                 ->with(['auteurs', 'domaines'])
+                                 ->withCount('vulgarisations')
+                                 ->latest()
+                                 ->paginate(15);
 
         return view('admin.recherches.index', compact('recherches'));
     }

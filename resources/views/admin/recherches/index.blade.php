@@ -21,8 +21,12 @@
             @foreach($recherches as $r)
             <tr>
                 <td>{{ $r->titre }}</td>
-                <td>{{ $r->auteur ?? '—' }}</td>
-                <td>{{ $r->domaine ?? '—' }}</td>
+                <<td>
+                    {{ $r->auteurs->pluck('nom')->implode(', ') ?: '—' }}
+                </td>
+                <td>
+                    {{ $r->domaines->pluck('label')->implode(', ') ?: '—' }}
+                </td>
                 <td>{{ $r->vulgarisations_count }}</td>
                 <td>
                     <a href="{{ route('admin.recherches.show', $r) }}" class="btn btn-sm btn-info">Voir</a>

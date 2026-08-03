@@ -39,7 +39,7 @@ class HalImportService
 
         if ($domaine === null) {
             $params['fq']   = 'submittedDate_tdate:[NOW-1MONTH TO NOW]';
-            $params['rows'] = 1000;
+            $params['rows'] = min($rows, 500);
         } else {
             $params['fq'] = 'domain_s:"' . $domaine . '"';
         }
@@ -324,7 +324,6 @@ public function importDocs(array $docs, bool $downloadPdf = true, ?int $userId =
 
         $halId = $doc['halId_s'] ?? md5($titre . ($doc['submittedDate_tdate'] ?? ''));
 
-        // Vérifie doublon pour cet utilisateur spécifiquement
         $query = Recherche::where('hal_id', $halId);
         if ($userId) {
             $query->where('user_id', $userId);
@@ -353,21 +352,12 @@ public function importDocs(array $docs, bool $downloadPdf = true, ?int $userId =
             }
         }
 
-        Recherche::create([
+        $recherche = Recherche::create([
             'user_id'         => $userId,
             'titre'           => $titre,
             'abstract'        => is_array($doc['abstract_s'] ?? null)
                                  ? $doc['abstract_s'][0]
                                  : ($doc['abstract_s'] ?? null),
-            'auteur'          => is_array($doc['authFullName_s'] ?? null)
-                                 ? implode(', ', $doc['authFullName_s'])
-                                 : ($doc['authFullName_s'] ?? null),
-            'structure'       => is_array($doc['structName_s'] ?? null)
-                                 ? implode(', ', $doc['structName_s'])
-                                 : ($doc['structName_s'] ?? null),
-            'domaine'         => is_array($doc['domain_s'] ?? null)
-                                 ? implode(', ', $doc['domain_s'])
-                                 : ($doc['domain_s'] ?? null),
             'date_production' => isset($doc['submittedDate_tdate'])
                                  ? substr($doc['submittedDate_tdate'], 0, 10)
                                  : null,
@@ -376,6 +366,39 @@ public function importDocs(array $docs, bool $downloadPdf = true, ?int $userId =
             'hal_url'         => $doc['uri_s'] ?? null,
             'pdf_path'        => $pdfPath,
         ]);
+
+        // Domaines
+        $domaineCodes = collect((array)($doc['domain_s'] ?? []))->unique()->values();
+        foreach ($domaineCodes as $code) {
+            $label   = self::LABELS_DOMAINES[$code] ?? $code;
+            $domaine = \App\Models\Domaine::firstOrCreate(
+                ['code'  => $code],
+                ['label' => $label]
+            );
+            $recherche->domaines()->syncWithoutDetaching([$domaine->id]);
+        }
+
+        // Auteurs
+        $auteurs = is_array($doc['authFullName_s'] ?? null)
+            ? $doc['authFullName_s']
+            : explode(', ', $doc['authFullName_s'] ?? '');
+
+        foreach ($auteurs as $nom) {
+            if (empty(trim($nom))) continue;
+            $auteur = \App\Models\Auteur::firstOrCreate(['nom' => trim($nom)]);
+            $recherche->auteurs()->syncWithoutDetaching($auteur->id);
+        }
+
+        // Structures
+        $structures = is_array($doc['structName_s'] ?? null)
+            ? $doc['structName_s']
+            : explode(', ', $doc['structName_s'] ?? '');
+
+        foreach ($structures as $nom) {
+            if (empty(trim($nom))) continue;
+            $structure = \App\Models\Structure::firstOrCreate(['nom' => trim($nom)]);
+            $recherche->structures()->syncWithoutDetaching($structure->id);
+        }
 
         $imported++;
     }
