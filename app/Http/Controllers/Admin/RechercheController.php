@@ -28,28 +28,41 @@ class RechercheController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'titre'       => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'auteur'      => 'nullable|string|max:255',
-            'domaine'     => 'nullable|string|max:100',
-            'pdf'         => 'required|mimes:pdf|max:20480', // 20 MB max
+            'titre' => 'required|string|max:255',
+            'pdf'   => 'nullable|mimes:pdf|max:20480',
         ]);
 
-        $path = $request->file('pdf')->store('recherches', 'public');
+        $pdfPath = null;
+        if ($request->hasFile('pdf')) {
+            $pdfPath = $request->file('pdf')->store('recherches', 'files');
+        }
 
-        $path = $request->file('pdf')->store('recherches', 'public');
+        $recherche = Recherche::create([
+            'user_id'     => auth()->id(),
+            'titre'       => $request->titre,
+            'description' => $request->description,
+            'date_production' => $request->date_production,
+            'source'      => 'manuel',
+            'pdf_path'    => $pdfPath,
+        ]);
 
-    Recherche::create([
-        'user_id'     => auth()->id(),  // ← ajouter
-        'titre'       => $request->titre,
-        'description' => $request->description,
-        'auteur'      => $request->auteur,
-        'domaine'     => $request->domaine,
-        'pdf_path'    => $path,
-    ]);
+        // Domaines
+        if ($request->filled('domaines')) {
+            foreach ((array)$request->domaines as $code) {
+                $domaine = \App\Models\Domaine::firstOrCreate(
+                    ['code'  => $code],
+                    ['label' => $code]
+                );
+                $recherche->domaines()->syncWithoutDetaching([$domaine->id]);
+            }
+        }
 
-    return redirect()->route('admin.recherches.index')
-                     ->with('success', 'Recherche ajoutée avec succès.');
+        if (request()->expectsJson()) {
+            return response()->json($recherche->load('domaines', 'auteurs'), 201);
+        }
+
+        return redirect()->route('admin.recherches.index')
+                         ->with('success', 'Recherche ajoutée.');
     }
 
     public function show(Recherche $recherche)
