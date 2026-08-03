@@ -19,7 +19,7 @@ class Recherche extends Model
         if (!$this->pdf_path) {
             return null;  // ← retourne null au lieu de asset('files/')
         }
-        return asset('storage/' . $this->pdf_path);
+        return asset('files/' . $this->pdf_path);
     }
 
     public function user()
