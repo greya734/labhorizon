@@ -21,6 +21,9 @@
     <hr>
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3>Vulgarisations associées ({{ $recherche->vulgarisations->count() }})</h3>
+        <a href="{{ route('admin.vulgarisations.auto', $recherche) }}" class="btn btn-success">
+            🤖 Vulgarisation auto
+        </a>
         <a href="{{ route('admin.vulgarisations.create', $recherche) }}" class="btn btn-success">
             + Ajouter une vulgarisation
         </a>

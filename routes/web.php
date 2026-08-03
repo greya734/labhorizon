@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\RechercheController;
 use App\Http\Controllers\Admin\VulgarisationController;
 use App\Http\Controllers\Admin\HalImportController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Admin\VulgarisationAutoController;
 
 // Routes ORCID
 Route::middleware('auth')->group(function () {
@@ -35,7 +36,13 @@ Route::prefix('moncompte')->name('admin.')->middleware('auth')->group(function (
 
     // Vulgarisations
     Route::prefix('recherches/{recherche}/vulgarisations')->name('vulgarisations.')->group(function () {
+        // Routes statiques
         Route::get('create',              [VulgarisationController::class, 'create'])->name('create');
+        Route::get('vulgariser',          [VulgarisationAutoController::class, 'create'])->name('auto');        // ← avant /{vulgarisation}
+        Route::post('vulgariser/preview', [VulgarisationAutoController::class, 'preview'])->name('preview');
+        Route::post('vulgariser',         [VulgarisationAutoController::class, 'generate'])->name('generate');
+
+        // Routes dynamiques
         Route::post('/',                  [VulgarisationController::class, 'store'])->name('store');
         Route::get('/{vulgarisation}',    [VulgarisationController::class, 'show'])->name('show');
         Route::delete('/{vulgarisation}', [VulgarisationController::class, 'destroy'])->name('destroy');

@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'llm' => [
+        'url'   => env('LLM_URL', 'http://localhost:1234/v1'),
+        'model' => env('LLM_MODEL', 'local-model'),
+    ],
+
 ];
