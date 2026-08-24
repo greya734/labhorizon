@@ -29,51 +29,154 @@ php artisan queue:work   # dans un second terminal
 
 ## Authentification
 
-L'auth utilise la **session cookie** Laravel Breeze (pas de token JWT/Sanctum).
-Frontend et backend étant sur le même domaine, les requêtes protégées doivent inclure le cookie de session.
+L'auth utilise la **session cookie** Laravel Breeze — pas de token JWT/Sanctum.
+Le frontend React n'utilise pas les pages Blade `/login` et `/register` — tout passe par l'API JSON.
 
-### Configuration CORS requise
+### Configuration CORS
 
-Le CORS est déjà configuré dans `config/cors.php` pour `localhost:5173`.
-Pour un autre port, modifier `allowed_origins`.
+Déjà configuré dans `config/cors.php` pour `localhost:5173`.
 
 ```php
-// config/cors.php
 'allowed_origins' => ['http://localhost:5173'],
 'supports_credentials' => true,
+```
+
+Pour un autre port, modifier `allowed_origins` et les variables `.env` :
+
+```env
+SESSION_DOMAIN=localhost
+SANCTUM_STATEFUL_DOMAINS=localhost:5173,127.0.0.1:5173
 ```
 
 ### Headers requis pour toutes les requêtes POST/PUT/DELETE
 
 ```http
-X-XSRF-TOKEN: {valeur du cookie XSRF-TOKEN}
 Content-Type: application/json
 Accept: application/json
+X-XSRF-TOKEN: {valeur du cookie XSRF-TOKEN}
 ```
 
-> ⚠️ Le cookie `XSRF-TOKEN` est fourni automatiquement par Laravel à la première requête GET.
-> Il faut le lire et le renvoyer dans le header `X-XSRF-TOKEN`.
-
-### Workflow de connexion recommandé (SPA)
+### Workflow de connexion recommandé (SPA React)
 
 ```
 1. GET  /sanctum/csrf-cookie   → initialise la session + cookie XSRF-TOKEN
-2. POST /api/login             → authentifie, retourne l'utilisateur
-3. GET  /api/me                → vérifie la session active
-4. POST /api/logout            → déconnecte
+2. POST /api/register          → créer un compte (retourne l'utilisateur)
+   ou
+   POST /api/login             → se connecter (retourne l'utilisateur)
+3. GET  /api/me                → vérifier la session active
+4. POST /api/logout            → se déconnecter
 ```
+
+### Exemple complet en JavaScript
+
+```javascript
+// Utilitaire — lire un cookie
+function getCookie(name) {
+  return decodeURIComponent(
+    document.cookie.split('; ')
+      .find(row => row.startsWith(name + '='))
+      ?.split('=')[1] ?? ''
+  );
+}
+
+// 1. Initialiser la session (OBLIGATOIRE avant login/register)
+await fetch('http://127.0.0.1:8000/sanctum/csrf-cookie', {
+  credentials: 'include'
+});
+
+// 2a. Register
+const register = await fetch('http://127.0.0.1:8000/api/register', {
+  method: 'POST',
+  credentials: 'include',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'X-XSRF-TOKEN': getCookie('XSRF-TOKEN'),
+  },
+  body: JSON.stringify({
+    name: 'Jean Dupont',
+    email: 'jean@example.com',
+    password: 'motdepasse',
+    password_confirmation: 'motdepasse',
+  })
+});
+
+// 2b. Login
+const login = await fetch('http://127.0.0.1:8000/api/login', {
+  method: 'POST',
+  credentials: 'include',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'X-XSRF-TOKEN': getCookie('XSRF-TOKEN'),
+  },
+  body: JSON.stringify({
+    email: 'jean@example.com',
+    password: 'motdepasse',
+  })
+});
+
+// 3. Vérifier la session
+const me = await fetch('http://127.0.0.1:8000/api/me', {
+  credentials: 'include',
+  headers: { 'Accept': 'application/json' }
+});
+
+// 4. Logout
+await fetch('http://127.0.0.1:8000/api/logout', {
+  method: 'POST',
+  credentials: 'include',
+  headers: {
+    'Accept': 'application/json',
+    'X-XSRF-TOKEN': getCookie('XSRF-TOKEN'),
+  }
+});
+```
+
+> ⚠️ `credentials: 'include'` est **indispensable** sur chaque requête pour que le cookie de session soit envoyé.
 
 ---
 
 ## Endpoints Auth (`/api`)
 
-### `POST /api/login`
-Connecte un utilisateur existant.
+### `POST /api/register`
+Créer un compte chercheur.
 
 **Body (JSON) :**
 ```json
 {
-  "email": "user@example.com",
+  "name": "Jean Dupont",
+  "email": "jean@example.com",
+  "password": "motdepasse",
+  "password_confirmation": "motdepasse"
+}
+```
+
+**Réponse 201 :**
+```json
+{
+  "user": {
+    "id": 1,
+    "name": "Jean Dupont",
+    "email": "jean@example.com",
+    "orcid": null,
+    "orcid_verified": false,
+    "created_at": "2026-08-03T10:00:00Z"
+  }
+}
+```
+
+**Réponse 422 :** si email déjà utilisé ou mot de passe trop court.
+
+---
+
+### `POST /api/login`
+Se connecter.
+
+**Body (JSON) :**
+```json
+{
+  "email": "jean@example.com",
   "password": "motdepasse"
 }
 ```
@@ -84,10 +187,9 @@ Connecte un utilisateur existant.
   "user": {
     "id": 1,
     "name": "Jean Dupont",
-    "email": "user@example.com",
+    "email": "jean@example.com",
     "orcid": "0000-0002-1825-0097",
-    "orcid_verified": true,
-    "created_at": "2026-01-01T00:00:00Z"
+    "orcid_verified": true
   }
 }
 ```
@@ -95,16 +197,6 @@ Connecte un utilisateur existant.
 **Réponse 401 :**
 ```json
 { "message": "Identifiants invalides." }
-```
-
----
-
-### `POST /api/logout` 🔒
-Déconnecte l'utilisateur courant.
-
-**Réponse 200 :**
-```json
-{ "message": "Déconnecté." }
 ```
 
 ---
@@ -117,7 +209,7 @@ Retourne l'utilisateur connecté.
 {
   "id": 1,
   "name": "Jean Dupont",
-  "email": "user@example.com",
+  "email": "jean@example.com",
   "orcid": "0000-0002-1825-0097",
   "orcid_verified": true
 }
@@ -127,15 +219,25 @@ Retourne l'utilisateur connecté.
 
 ---
 
+### `POST /api/logout` 🔒
+Se déconnecter.
+
+**Réponse 200 :**
+```json
+{ "message": "Déconnecté." }
+```
+
+---
+
 ## Endpoints Recherches (`/api/recherches`)
 
 ### `GET /api/recherches`
 Liste publique de toutes les recherches. **Pas d'auth requise.**
 
-**Paramètres query (optionnels) :**
+**Paramètres query :**
 | Paramètre | Type | Description |
 |-----------|------|-------------|
-| `page` | int | Numéro de page (défaut : 1) |
+| `page` | int | Numéro de page (défaut : 1, 15 résultats/page) |
 
 **Réponse 200 :**
 ```json
@@ -160,7 +262,7 @@ Liste publique de toutes les recherches. **Pas d'auth requise.**
       ]
     }
   ],
-  "links": { ... },
+  "links": { "...": "..." },
   "meta": {
     "current_page": 1,
     "last_page": 5,
@@ -173,7 +275,7 @@ Liste publique de toutes les recherches. **Pas d'auth requise.**
 ---
 
 ### `GET /api/recherches/{id}`
-Détail d'une recherche avec ses vulgarisations. **Pas d'auth requise.**
+Détail d'une recherche avec vulgarisations. **Pas d'auth requise.**
 
 **Réponse 200 :**
 ```json
@@ -274,7 +376,7 @@ Modifier une recherche. **Auth requise + propriétaire uniquement.**
 ```
 
 **Réponse 200 :** objet recherche mis à jour.
-**Réponse 403 :** si l'utilisateur n'est pas propriétaire.
+**Réponse 403 :** si non propriétaire.
 
 ---
 
@@ -286,32 +388,33 @@ Supprimer une recherche. **Auth requise + propriétaire uniquement.**
 { "message": "Recherche supprimée." }
 ```
 
-**Réponse 403 :** si l'utilisateur n'est pas propriétaire.
+**Réponse 403 :** si non propriétaire.
 
 ---
 
 ## Fichiers PDF
 
-Les PDFs sont servis publiquement via une route Laravel dédiée :
+Les PDFs sont servis publiquement via une route Laravel :
 
 ```
-GET http://127.0.0.1:8000/files/recherches/{nom-du-fichier}.pdf
-GET http://127.0.0.1:8000/files/vulgarisations/{nom-du-fichier}.pdf
+GET http://127.0.0.1:8000/files/recherches/{fichier}.pdf
+GET http://127.0.0.1:8000/files/vulgarisations/{fichier}.pdf
 ```
 
-> Le champ `pdf_url` est directement disponible dans les réponses JSON — pas besoin de reconstruire l'URL manuellement.
+> Le champ `pdf_url` est directement disponible dans les réponses JSON.
 
 ```javascript
-// Exemple
-const pdfUrl = recherche.pdf_url; // null si pas de PDF
-if (pdfUrl) window.open(pdfUrl);
+// Pas besoin de reconstruire l'URL
+if (recherche.pdf_url) {
+  window.open(recherche.pdf_url);
+}
 ```
 
 ---
 
 ## Domaines disponibles
 
-Les domaines sont stockés en BDD (`GET /api/recherches` les retourne directement dans chaque recherche).
+Les domaines sont retournés directement dans les réponses JSON.
 
 | Code | Label |
 |------|-------|
@@ -355,6 +458,28 @@ Les domaines sont stockés en BDD (`GET /api/recherches` les retourne directemen
 
 ---
 
+## Codes d'erreur
+
+| Code | Signification |
+|------|--------------|
+| `401` | Non authentifié — session absente ou expirée |
+| `403` | Interdit — ressource appartenant à un autre utilisateur |
+| `404` | Ressource introuvable |
+| `422` | Erreur de validation |
+| `500` | Erreur serveur interne |
+
+**Format d'erreur 422 :**
+```json
+{
+  "message": "The titre field is required.",
+  "errors": {
+    "titre": ["The titre field is required."]
+  }
+}
+```
+
+---
+
 ## Import HAL (back-office uniquement)
 
 L'import HAL est géré côté back-office Blade (`/moncompte/hal/import`), pas via l'API.
@@ -364,8 +489,13 @@ Les recherches importées sont automatiquement disponibles via `GET /api/recherc
 
 ## Génération de vulgarisation IA (back-office uniquement)
 
-La génération via LLM (LM Studio) est disponible depuis `/moncompte/recherches/{id}/vulgarisations/vulgariser`.
-Elle fonctionne de manière **asynchrone** via un job Laravel — lancer `php artisan queue:work` pour traiter les jobs.
+La génération via LLM (LM Studio) est disponible depuis le back-office.
+Elle fonctionne de manière **asynchrone** via un job Laravel.
+
+```bash
+# Lancer le worker pour traiter les jobs LLM
+php artisan queue:work
+```
 
 ---
 
@@ -380,33 +510,14 @@ DB_DATABASE=labhorizon
 DB_USERNAME=root
 DB_PASSWORD=
 
-MAIL_MAILER=log          # emails dans storage/logs/laravel.log en dev
+SESSION_DOMAIN=localhost
+SANCTUM_STATEFUL_DOMAINS=localhost:5173,127.0.0.1:5173
 
-LLM_ENABLED=false        # false = mode test sans LM Studio
+MAIL_MAILER=log
+
+LLM_ENABLED=false
 LLM_URL=http://localhost:1234/v1
 LLM_MODEL=local-model
 
 QUEUE_CONNECTION=database
-```
-
----
-
-## Codes d'erreur
-
-| Code | Signification |
-|------|--------------|
-| `401` | Non authentifié — session absente ou expirée |
-| `403` | Interdit — ressource appartenant à un autre utilisateur |
-| `404` | Ressource introuvable |
-| `422` | Erreur de validation — voir champ `errors` dans la réponse |
-| `500` | Erreur serveur interne |
-
-**Format d'erreur 422 :**
-```json
-{
-  "message": "The titre field is required.",
-  "errors": {
-    "titre": ["The titre field is required."]
-  }
-}
 ```
