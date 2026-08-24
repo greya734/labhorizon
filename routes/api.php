@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AuthApiController;
 Route::post('/login',  [AuthApiController::class, 'login']);
 Route::post('/logout', [AuthApiController::class, 'logout'])->middleware('auth');
 Route::get('/me',      [AuthApiController::class, 'me'])->middleware('auth');
+Route::post('/register', [AuthApiController::class, 'register']);
 
 // Publiques
 Route::get('/recherches',            [RechercheApiController::class, 'index']);

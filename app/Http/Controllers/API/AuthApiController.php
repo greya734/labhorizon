@@ -39,4 +39,25 @@ class AuthApiController extends Controller
     {
         return response()->json(auth()->user());
     }
+
+
+    public function register(Request $request)
+{
+    $request->validate([
+        'name'     => 'required|string|max:255',
+        'email'    => 'required|email|unique:users,email',
+        'password' => 'required|string|min:8|confirmed',
+    ]);
+
+    $user = \App\Models\User::create([
+        'name'     => $request->name,
+        'email'    => $request->email,
+        'password' => \Illuminate\Support\Facades\Hash::make($request->password),
+    ]);
+
+    Auth::login($user);
+    $request->session()->regenerate();
+
+    return response()->json(['user' => $user], 201);
+}
 }
